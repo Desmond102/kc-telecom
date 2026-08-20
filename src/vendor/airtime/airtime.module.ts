@@ -3,6 +3,7 @@ import { AirtimeController } from './airtime.controller';
 import { AirtimeService } from './airtime.service';
 import { HttpVtuProvider } from './providers/http-vtu.provider';
 import { PairgateProvider } from './providers/pairgate.provider';
+import { SubAndGainProvider } from '../subandgain/subandgain.provider';
 
 @Module({
   controllers: [AirtimeController],
@@ -11,7 +12,9 @@ import { PairgateProvider } from './providers/pairgate.provider';
     {
       provide: 'AIRTIME_PROVIDER',
       useFactory: () => {
-        if ((process.env.AIRTIME_DATA_PROVIDER ?? 'HTTP').toUpperCase() === 'PAIRGATE') {
+        const configuredProvider = (process.env.AIRTIME_DATA_PROVIDER ?? process.env.VTU_PROVIDER_NAME ?? 'HTTP').toUpperCase();
+
+        if (configuredProvider === 'PAIRGATE') {
           return new PairgateProvider({
             baseUrl: process.env.PAIRGATE_BASE_URL ?? '',
             apiKey: process.env.PAIRGATE_API_KEY ?? '',
@@ -19,6 +22,16 @@ import { PairgateProvider } from './providers/pairgate.provider';
             dataPlanMap: parsePairgatePlanMap(),
           });
         }
+
+        if (configuredProvider === 'SUBANDGAIN') {
+          return new SubAndGainProvider({
+            baseUrl: process.env.SUBANDGAIN_BASE_URL ?? '',
+            username: process.env.SUBANDGAIN_USERNAME ?? '',
+            apiKey: process.env.SUBANDGAIN_API_KEY ?? '',
+            timeoutMs: Number(process.env.SUBANDGAIN_TIMEOUT_MS ?? 10000),
+          });
+        }
+
         const name = process.env.VTU_PROVIDER_NAME ?? 'HTTP';
         return new HttpVtuProvider({
           baseUrl: process.env.VTU_BASE_URL ?? '',

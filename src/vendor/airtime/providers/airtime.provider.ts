@@ -10,4 +10,6 @@ export interface AirtimePurchaseParams {
 export interface AirtimeProvider {
   name: string;
   purchaseAirtime(params: AirtimePurchaseParams): Promise<NormalizedProviderResult>;
+  getAirtimeTransactionStatus?(reference: string): Promise<NormalizedProviderResult>;
+  getTransactionStatus?(reference: string): Promise<NormalizedProviderResult>;
 }
