@@ -180,9 +180,23 @@ export class AirtimeService {
 
   async reconcileByProviderReference(providerReference: string, result: NormalizedProviderResult) {
     const purchase = await this.prisma.airtimePurchase.findFirst({
-      where: { provider: 'PAIRGATE', providerReference },
+      where: { providerReference },
     });
     if (!purchase) return null;
+    const transaction = await this.prisma.walletTransaction.findUniqueOrThrow({
+      where: { reference: purchase.reference },
+    });
+    return this.reconcile(purchase.id, transaction.id, transaction.walletId, Number(purchase.amount), result);
+  }
+
+  async queryAndReconcileByProviderReference(providerReference: string) {
+    const purchase = await this.prisma.airtimePurchase.findFirst({ where: { providerReference } });
+    if (!purchase) return null;
+
+    const query = this.provider.getAirtimeTransactionStatus ?? this.provider.getTransactionStatus;
+    if (!query) return null;
+
+    const result = await query.call(this.provider, providerReference);
     const transaction = await this.prisma.walletTransaction.findUniqueOrThrow({
       where: { reference: purchase.reference },
     });

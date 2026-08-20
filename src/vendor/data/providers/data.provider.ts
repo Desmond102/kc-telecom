@@ -11,4 +11,7 @@ export interface DataPurchaseParams {
 export interface DataProvider {
   name: string;
   purchaseData(params: DataPurchaseParams): Promise<NormalizedProviderResult>;
+  getDataTransactionStatus?(reference: string): Promise<NormalizedProviderResult>;
+  getTransactionStatus?(reference: string): Promise<NormalizedProviderResult>;
+  getActiveDataPlans?(): Promise<Array<{ dataPlanId: string; name?: string; network?: string; status?: string }>>;
 }
