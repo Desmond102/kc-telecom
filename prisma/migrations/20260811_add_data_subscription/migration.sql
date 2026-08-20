@@ -1,0 +1,3 @@
+-- Intentionally left empty.
+-- data_subscriptions is already created by:
+-- 20260807093000_add_data_subscriptions
