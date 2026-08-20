@@ -31,11 +31,9 @@ async function main() {
     const result = await client.purchaseAirtime({ network: 'NINE_MOBILE', phone: '08012345678', amount: 100, reference: 'AIR-stub' });
     assert.equal(result.outcome, outcome);
     assert.equal(result.providerReference, 'provider-tx-1');
-    assert.equal(requests[0].options.path, '/airtime/purchase');
-    const body = JSON.parse(requests[0].body);
-    assert.equal(body.network, '9MOBILE');
-    assert.equal(body.username, 'stub-user');
-    assert.equal(body.apiKey, 'stub-key');
+    assert.equal(requests[0].options.method, 'GET');
+    assert.equal(requests[0].options.path, '/api/airtime.php?username=stub-user&apiKey=stub-key&network=9MOBILE&phoneNumber=08012345678&amount=100');
+    assert.equal(requests[0].body, '');
   }
 
   const timeout = provider(new Error('stub timeout'));
@@ -46,7 +44,8 @@ async function main() {
 
   const query = provider({ statusCode: 200, raw: JSON.stringify({ status: 'Approved', id: 'query-tx-1' }) });
   const queryResult = await query.client.getAirtimeTransactionStatus('AIR-uncertain');
-  assert.equal(query.requests[0].options.path, '/airtime/transaction/query');
+  assert.equal(query.requests[0].options.path, '/api/query_airtime.php?username=stub-user&apiKey=stub-key&trans_id=AIR-uncertain');
+  assert.equal(query.requests[0].body, '');
   assert.equal(queryResult.outcome, 'SUCCESS');
   assert.equal(queryResult.providerReference, 'query-tx-1');
 
@@ -67,7 +66,19 @@ async function main() {
   });
   const activePlans = await plans.client.getActiveDataPlans();
   assert.deepEqual(activePlans.map((plan) => plan.dataPlanId), ['mtn-active', 'glo-active']);
-  assert.equal(plans.requests[0].options.path, '/data/plans');
+  assert.equal(plans.requests[0].options.method, 'GET');
+  assert.equal(plans.requests[0].options.path, '/api/databundles.php?username=stub-user&apiKey=stub-key');
+  assert.equal(plans.requests[0].body, '');
+
+  const balance = provider({
+    statusCode: 200,
+    raw: JSON.stringify({ status: 'successful', balance: 62.5 }),
+  });
+  const balanceResult = await balance.client.getWalletBalance();
+  assert.equal(balanceResult.outcome, 'SUCCESS');
+  assert.equal(balance.requests[0].options.method, 'GET');
+  assert.equal(balance.requests[0].options.path, '/api/balance.php?username=stub-user&apiKey=stub-key');
+  assert.equal(balance.requests[0].body, '');
 
   const data = provider({ statusCode: 200, raw: JSON.stringify({ status: 'Pending', reference: 'data-tx-1' }) });
   const dataResult = await data.client.purchaseData({ network: 'MTN', phone: '08012345678', amount: 500, plan: 'provider-plan-42', reference: 'DATA-stub' });

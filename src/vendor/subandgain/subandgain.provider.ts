@@ -16,6 +16,8 @@ export interface SubAndGainPlanRecord {
   dataPlanId: string;
   id?: string;
   planId?: string;
+  data_plan_id?: string;
+  plan_id?: string;
   name?: string;
   network?: string;
   status?: string;
@@ -39,13 +41,12 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   purchaseAirtime(params: AirtimePurchaseParams): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/airtime/purchase', {
+    return this.request('GET', '/api/airtime.php', {
       username: this.username,
       apiKey: this.apiKey,
       network: normalizeNetwork(params.network),
       phoneNumber: params.phone,
       amount: params.amount,
-      reference: params.reference,
     });
   }
 
@@ -62,10 +63,10 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   getAirtimeTransactionStatus(reference: string): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/airtime/transaction/query', {
+    return this.request('GET', '/api/query_airtime.php', {
       username: this.username,
       apiKey: this.apiKey,
-      reference,
+      trans_id: reference,
     });
   }
 
@@ -82,14 +83,14 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   getWalletBalance(): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/wallet/balance', {
+    return this.request('GET', '/api/balance.php', {
       username: this.username,
       apiKey: this.apiKey,
     });
   }
 
   getDataPlanCatalogue(): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/data/plans', {
+    return this.request('GET', '/api/databundles.php', {
       username: this.username,
       apiKey: this.apiKey,
     });
@@ -99,9 +100,9 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
     const result = await this.getDataPlanCatalogue();
     const list = extractPlanList(result.rawResponse ?? result);
     return list.filter((plan) => isActivePlan(plan)).map((plan) => ({
-      id: String(plan.id ?? plan.dataPlanId ?? plan.planId ?? ''),
-      dataPlanId: String(plan.dataPlanId ?? plan.id ?? plan.planId ?? ''),
-      planId: String(plan.planId ?? plan.dataPlanId ?? plan.id ?? ''),
+      id: getPlanId(plan),
+      dataPlanId: getPlanId(plan),
+      planId: getPlanId(plan),
       name: typeof plan.name === 'string' ? plan.name : undefined,
       network: typeof plan.network === 'string' ? plan.network : undefined,
       status: typeof plan.status === 'string' ? plan.status : undefined,
@@ -120,15 +121,19 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
 
     try {
       const url = new URL(`${this.baseUrl}${path}`);
-      const body = JSON.stringify(payload);
+      let body = '';
+      if (method === 'GET') {
+        for (const [key, value] of Object.entries(payload)) url.searchParams.set(key, String(value));
+      } else {
+        body = JSON.stringify(payload);
+      }
       const requestOptions: https.RequestOptions = {
         method,
         hostname: url.hostname,
         port: url.port ? Number(url.port) : undefined,
         path: `${url.pathname}${url.search}`,
         headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body),
+          ...(method === 'POST' ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } : {}),
         },
         timeout: this.timeoutMs,
       };
@@ -183,6 +188,10 @@ function isActivePlan(plan: SubAndGainPlanRecord): boolean {
   return false;
 }
 
+function getPlanId(plan: SubAndGainPlanRecord): string {
+  return String(plan.dataPlanId ?? plan.data_plan_id ?? plan.planId ?? plan.plan_id ?? plan.id ?? '');
+}
+
 function extractPlanList(rawResponse: unknown): SubAndGainPlanRecord[] {
   if (!rawResponse || typeof rawResponse !== 'object') return [];
   const payload = rawResponse as Record<string, unknown>;
@@ -210,7 +219,7 @@ function normalizeSubAndGainResponse(payload: any, statusCode: number, providerN
   const lowered = normalized.toLowerCase();
 
   if (statusCode >= 200 && statusCode < 300) {
-    if (lowered === 'approved' || lowered === 'success' || lowered === 'completed') {
+    if (lowered === 'approved' || lowered === 'success' || lowered === 'successful' || lowered === 'completed') {
       return {
         outcome: 'SUCCESS',
         providerName,
