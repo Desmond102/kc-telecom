@@ -39,7 +39,7 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   purchaseAirtime(params: AirtimePurchaseParams): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/api/airtime.php', {
+    return this.request('POST', '/airtime/purchase', {
       username: this.username,
       apiKey: this.apiKey,
       network: normalizeNetwork(params.network),
@@ -50,7 +50,7 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   purchaseData(params: DataPurchaseParams): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/api/data.php', {
+    return this.request('POST', '/data/purchase', {
       username: this.username,
       apiKey: this.apiKey,
       network: normalizeNetwork(params.network),
@@ -62,7 +62,7 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   getAirtimeTransactionStatus(reference: string): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/api/query_airtime.php', {
+    return this.request('POST', '/airtime/transaction/query', {
       username: this.username,
       apiKey: this.apiKey,
       reference,
@@ -82,14 +82,14 @@ export class SubAndGainProvider implements AirtimeProvider, DataProvider {
   }
 
   getWalletBalance(): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/api/balance.php', {
+    return this.request('POST', '/wallet/balance', {
       username: this.username,
       apiKey: this.apiKey,
     });
   }
 
   getDataPlanCatalogue(): Promise<NormalizedProviderResult> {
-    return this.request('POST', '/api/databundles.php', {
+    return this.request('POST', '/data/plans', {
       username: this.username,
       apiKey: this.apiKey,
     });
